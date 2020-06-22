@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.1.9.RELEASE</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+
+    <groupId>com.pci.hjmos.microservice</groupId>
+    <artifactId>microservice-test</artifactId>
+    <version>1.1-SNAPSHOT</version>
+
+    <dependencies>
+        <!--<dependency>
+           <groupId>com.pci.hjmos.framework</groupId>
+           <artifactId>hjmos-core</artifactId>
+            <version>1.0.00</version>
+        </dependency>-->
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.pci.hjmos.framework</groupId>
+            <artifactId>hjmos-message</artifactId>
+            <version>1.0.00-SNAPSHOT</version>
+        </dependency>
+
+        <!--<dependency>
+            <groupId>com.pci.hjmos.framework</groupId>
+            <artifactId>hjmos-config</artifactId>
+            <version>1.0.00-SNAPSHOT</version>
+        </dependency>-->
+
+        <!--<dependency>
+            <groupId>com.pci.hjmos.framework</groupId>
+            <artifactId>hjmos-jobschedule</artifactId>
+            <version>1.0.00</version>
+        </dependency>-->
+        <!--<dependency>
+            <groupId>com.pci.hjmos.framework</groupId>
+            <artifactId>hjmos-microservice</artifactId>
+            <version>1.0.00</version>
+        </dependency>-->
+
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-broker</artifactId>
+            <version>4.5.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j-impl</artifactId>
+            <version>2.9.1</version>
+        </dependency>
+
+    </dependencies>
+    <build>
+        <finalName>microservice-test</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!--true使用单独进程运行，热部署默认,推荐用spring-boot插件启动,其他可能有无法关闭进程等问题-->
+                    <fork>true</fork>
+
+                    <jvmArguments>
+
+                        <!-- -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005-->
+
+                        -Dfile.encoding=UTF-8
+                    </jvmArguments>
+                    <!-- <mainClass>com.pci.hjmos.framework.core.FrameWorkApp</mainClass>
+                     <layout>ZIP</layout>-->
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

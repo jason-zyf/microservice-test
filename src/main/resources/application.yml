@@ -1,0 +1,41 @@
+server:
+  port: 9092
+
+spring.datasource.url : jdbc:mysql://10.38.2.12:30006
+spring.datasource.driver-class-name : com.mysql.cj.jdbc.Driver
+spring.datasource.username : hjmos
+spring.datasource : 123456
+
+spring.application.name: testmq
+pci:
+  hjmos:
+    cache: core-cache
+    config: core-config
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://10.38.2.12/service-registry/eureka/
+
+hjmos:
+  rocketmq:
+    # 指定namesrv地址  192.168.236.137:9876;192.168.236.139:9876
+    namesrvAddr: 10.38.2.12:30076
+    #生产者group名称
+    producerGroupName: producerGroupName
+    #生产者实例名称
+    producerInstanceName: user_producer_instance
+  # kafka 相关设置
+  kafka:
+    # 指定kafka 代理地址，可以多个  192.168.236.137:9092;192.168.236.137:9093;192.168.236.137:9094
+    bootstrapServers: 10.36.10.2:9092;10.36.10.3:9092;10.36.10.4:9092
+    # 配置发往kafka的主题
+    permitTopics: log,hjmos-log
+
+# config没启动的默认配置
+#hjmos.kafka.host: hjmos-kafka
+#hjmos.kafka.port: 9092
+#hjmos.rocketmq.host: hjmos-rocketmq
+#hjmos.rocketmq.port: 9876
+#hjmos.rocketmq.producerGroupName: defaultGroupName
+#hjmos.rocketmq.producerInstanceName: defaultInstance
