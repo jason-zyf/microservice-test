@@ -226,6 +226,11 @@ public class MessageControllerTest {
                 return null;
             }
 
+//            @Override
+//            public boolean rocketmqbroadcast(){
+//                return true;
+//            }
+
             @Override
             public String getGroup() {
                 return "userGroup2";
