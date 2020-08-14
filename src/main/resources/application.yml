@@ -26,11 +26,11 @@ hjmos:
     #生产者实例名称
     producerInstanceName: user_producer_instance
   # kafka 相关设置
-#  kafka:
-#    # 指定kafka 代理地址，可以多个  192.168.236.137:9092;192.168.236.137:9093;192.168.236.137:9094
-#    bootstrapServers: 10.36.10.2:9092;10.36.10.3:9092;10.36.10.4:9092
-#    # 配置发往kafka的主题
-#    permitTopics: log,hjmos-log
+  kafka:
+    # 指定kafka 代理地址，可以多个  192.168.236.137:9092;192.168.236.137:9093;192.168.236.137:9094
+    bootstrapServers: 172.23.125.15:9092
+    # 配置发往kafka的主题
+    permitTopics: log,hjmos-log
 
 # config没启动的默认配置
 #hjmos.kafka.host: hjmos-kafka
@@ -40,6 +40,6 @@ hjmos:
 #hjmos.rocketmq.producerGroupName: defaultGroupName
 #hjmos.rocketmq.producerInstanceName: defaultInstance
 
-mq:
-  kafka:
-    enabled: 0
+#mq:
+#  kafka:
+#    enabled: 0

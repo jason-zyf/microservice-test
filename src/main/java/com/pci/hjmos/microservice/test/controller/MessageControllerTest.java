@@ -15,14 +15,15 @@ import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
+import org.apache.rocketmq.common.protocol.body.GroupList;
+import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 /**
@@ -245,11 +246,16 @@ public class MessageControllerTest {
         return "pci主题消费者初始化成功-->msg";
     }
 
+    /**
+     * 根据topic获取消费者组名集合
+     * @param topic  主题
+     * @return   返回消费者组名集合
+     */
     @GetMapping("/findKafkaConsumerGroup")
-    public String findConsumerGroup()throws ExecutionException, InterruptedException, TimeoutException {
+    public String findConsumerGroup(String topic) {
 
-        String brokerServers = "10.36.10.2:9092;10.36.10.3:9092;10.36.10.4:9092";
-        String topic = "log";
+        String brokerServers = "172.23.125.15:9092";
+//        topic="plc";
         Properties props = new Properties();
         props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, brokerServers);
 
@@ -268,7 +274,7 @@ public class MessageControllerTest {
             allGroupDetails.entrySet().forEach(entry -> {
                 String groupId = entry.getKey();
                 ConsumerGroupDescription description = entry.getValue();
-                System.out.println(description);
+                System.out.println("description:"+description);
                 boolean topicSubscribed = description.members().stream().map(MemberDescription::assignment)
                         .map(MemberAssignment::topicPartitions)
                         .map(tps -> tps.stream().map(TopicPartition::topic).collect(Collectors.toSet()))
@@ -277,21 +283,47 @@ public class MessageControllerTest {
                     filteredGroups.add(groupId);
             });
             return filteredGroups.toString();
+        }catch (Exception e){
+            e.printStackTrace();
         }
+        return null;
     }
 
-//    @GetMapping("/findrmqConsumerGroup")
-//    public String findrmqConsumerGroup(){
-//
-//        new ConsumerManager(new ConsumerIdsChangeListener() {
-//            @Override
-//            public void handle(ConsumerGroupEvent event, String group, Object... args) {
-//
-//            }
-//        }).queryTopicConsumeByWho("pci");
-//
-//        return null;
-//    }
+    @GetMapping("/findrmqConsumerGroup")
+    public String findrmqConsumerGroup(String topic){
+
+        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
+        String msg = "此主题没有消费者在线订阅。。。。。";
+        int num = 0;
+        try {
+            defaultMQAdminExt.setNamesrvAddr("172.23.125.15:9876");
+            defaultMQAdminExt.start();
+
+            // 1、先获取主题下所有的消费者组名
+            GroupList list = defaultMQAdminExt.queryTopicConsumeByWho(topic);
+            HashSet<String> groupList = list.getGroupList();
+
+            // 2、遍历每个消费者名称连接情况
+            for(String groupName : groupList){
+                try {
+                    ConsumerConnection connection = defaultMQAdminExt.examineConsumerConnectionInfo(groupName);
+                    num++;
+                }catch (Exception e){
+                    // 可以不往外抛异常，只日志记录异常信息；
+                    // e.printStackTrace();
+                    LogUtils.error("消费者组["+groupName+"]连接异常："+e.getMessage());
+                }
+            }
+            if(num > 0){
+                msg = "有消费者在线订阅此主题。。。。。";
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally {
+            defaultMQAdminExt.shutdown();
+        }
+        return msg;
+    }
 
     @GetMapping("/initMoreConsumer")
     public String initMoreConsumer(){

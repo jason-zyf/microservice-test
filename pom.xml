@@ -33,6 +33,12 @@
             <version>1.0.00-SNAPSHOT</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-tools</artifactId>
+            <version>4.5.2</version>
+        </dependency>
+
         <!--<dependency>
             <groupId>com.pci.hjmos.framework</groupId>
             <artifactId>hjmos-config</artifactId>
