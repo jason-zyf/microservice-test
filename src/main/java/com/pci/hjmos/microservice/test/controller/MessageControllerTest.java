@@ -289,6 +289,11 @@ public class MessageControllerTest {
         return null;
     }
 
+    /**
+     * rocketmq 根据主题查看是否有消费者在线订阅
+     * @param topic
+     * @return
+     */
     @GetMapping("/findrmqConsumerGroup")
     public String findrmqConsumerGroup(String topic){
 
@@ -323,6 +328,81 @@ public class MessageControllerTest {
             defaultMQAdminExt.shutdown();
         }
         return msg;
+    }
+
+    /**
+     * 判断是否有消费者在线订阅 topic主题，kafka的断掉后会有几秒的延迟时间
+     * @param topic 主题
+     * @return  true 有消费者  false 无消费者
+     */
+    @GetMapping("online-subscription")
+    public boolean onlineSubscription(String topic){
+        // 1、rocketmq是否有订阅
+        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
+        HashSet<String> groupList = new HashSet<>();
+        int num = 0;
+        try {
+            defaultMQAdminExt.setNamesrvAddr("172.23.125.15:9876");
+            defaultMQAdminExt.start();
+
+            // 1.1、先获取主题下所有的消费者组名
+            try {
+                GroupList list = defaultMQAdminExt.queryTopicConsumeByWho(topic);
+                groupList = list.getGroupList();
+            }catch (Exception e){
+                LogUtils.error(topic+"主题获取消费者组集合失败");
+            }
+
+            // 1.2、遍历每个消费者名称连接情况
+            for(String groupName : groupList){
+                try {
+                    ConsumerConnection connection = defaultMQAdminExt.examineConsumerConnectionInfo(groupName);
+                    num++;
+                }catch (Exception e){
+                    LogUtils.error("消费者组["+groupName+"]连接异常："+e.getMessage());
+                }
+            }
+
+            // 2、检查kafka是否有订阅
+            String brokerServers = "172.23.125.15:9092";
+            Properties props = new Properties();
+            props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, brokerServers);
+            final List<String> filteredGroups = new ArrayList<>();
+
+            try (AdminClient client = AdminClient.create(props)) {
+                List<String> allGroups = client.listConsumerGroups()
+                        .valid()
+                        .get(10, TimeUnit.SECONDS)
+                        .stream()
+                        .map(ConsumerGroupListing::groupId)
+                        .collect(Collectors.toList());
+
+                Map<String, ConsumerGroupDescription> allGroupDetails =
+                        client.describeConsumerGroups(allGroups).all().get(10, TimeUnit.SECONDS);
+
+                allGroupDetails.entrySet().forEach(entry -> {
+                    String groupId = entry.getKey();
+                    ConsumerGroupDescription description = entry.getValue();
+                    boolean topicSubscribed = description.members().stream().map(MemberDescription::assignment)
+                            .map(MemberAssignment::topicPartitions)
+                            .map(tps -> tps.stream().map(TopicPartition::topic).collect(Collectors.toSet()))
+                            .anyMatch(tps -> tps.contains(topic));
+                    if (topicSubscribed)
+                        filteredGroups.add(groupId);
+                });
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+            // 3、判断kafka或rocketmq是否有订阅
+            if(num > 0 || !filteredGroups.isEmpty()){
+                return true;
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally {
+            defaultMQAdminExt.shutdown();
+        }
+        return false;
     }
 
     @GetMapping("/initMoreConsumer")
