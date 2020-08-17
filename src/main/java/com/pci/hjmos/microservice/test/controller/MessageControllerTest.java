@@ -2,10 +2,8 @@ package com.pci.hjmos.microservice.test.controller;
 
 import com.pci.hjmos.framework.core.common.SimpleResult;
 import com.pci.hjmos.framework.core.common.exception.MessageSendFailException;
-import com.pci.hjmos.framework.core.message.api.MQCallback;
-import com.pci.hjmos.framework.core.message.api.MessageConsumerService;
-import com.pci.hjmos.framework.core.message.api.MessageListener;
-import com.pci.hjmos.framework.core.message.api.MessageProducerService;
+import com.pci.hjmos.framework.core.message.DefaultMsgExtService;
+import com.pci.hjmos.framework.core.message.api.*;
 import com.pci.hjmos.framework.core.message.entity.MessageBody;
 import com.pci.hjmos.framework.core.message.entity.MessageResult;
 import com.pci.hjmos.framework.core.utils.LogUtils;
@@ -403,6 +401,18 @@ public class MessageControllerTest {
             defaultMQAdminExt.shutdown();
         }
         return false;
+    }
+
+    /**
+     * 通过封装调用
+     * @param topic
+     * @return
+     */
+    @GetMapping("isOblineSub")
+    public boolean isOblineSub(String topic){
+
+        MessageExtService extService = MqUtils.getMessageExtService();
+        return extService.isOblineSub(topic);
     }
 
     @GetMapping("/initMoreConsumer")
