@@ -2,27 +2,22 @@ package com.pci.hjmos.microservice.test.controller;
 
 import com.pci.hjmos.framework.core.common.SimpleResult;
 import com.pci.hjmos.framework.core.common.exception.MessageSendFailException;
-import com.pci.hjmos.framework.core.message.DefaultMsgExtService;
-import com.pci.hjmos.framework.core.message.api.*;
+import com.pci.hjmos.framework.core.message.api.MQCallback;
+import com.pci.hjmos.framework.core.message.api.MessageConsumerService;
+import com.pci.hjmos.framework.core.message.api.MessageListener;
+import com.pci.hjmos.framework.core.message.api.MessageProducerService;
 import com.pci.hjmos.framework.core.message.entity.MessageBody;
 import com.pci.hjmos.framework.core.message.entity.MessageResult;
 import com.pci.hjmos.framework.core.utils.LogUtils;
 import com.pci.hjmos.framework.core.utils.MqUtils;
 import com.pci.hjmos.microservice.test.bean.SendMsgEntity;
-import org.apache.kafka.clients.admin.*;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.rocketmq.broker.client.ConsumerManager;
-import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
-import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
-import org.apache.rocketmq.common.protocol.body.GroupList;
-import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.annotation.Resource;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author zyting
@@ -30,12 +25,6 @@ import java.util.stream.Collectors;
  */
 @RestController
 public class MessageControllerTest {
-
-    @Resource
-    private ConsumerManager consumerManager;
-
-    @Resource
-    private ConsumerOffsetManager consumerOffsetManager;
 
     @GetMapping("/index")
     public String index(){
@@ -244,176 +233,7 @@ public class MessageControllerTest {
         return "pci主题消费者初始化成功-->msg";
     }
 
-    /**
-     * 根据topic获取消费者组名集合
-     * @param topic  主题
-     * @return   返回消费者组名集合
-     */
-    @GetMapping("/findKafkaConsumerGroup")
-    public String findConsumerGroup(String topic) {
 
-        String brokerServers = "172.23.125.15:9092";
-//        topic="plc";
-        Properties props = new Properties();
-        props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, brokerServers);
-
-        try (AdminClient client = AdminClient.create(props)) {
-            List<String> allGroups = client.listConsumerGroups()
-                    .valid()
-                    .get(10, TimeUnit.SECONDS)
-                    .stream()
-                    .map(ConsumerGroupListing::groupId)
-                    .collect(Collectors.toList());
-
-            Map<String, ConsumerGroupDescription> allGroupDetails =
-                    client.describeConsumerGroups(allGroups).all().get(10, TimeUnit.SECONDS);
-
-            final List<String> filteredGroups = new ArrayList<>();
-            allGroupDetails.entrySet().forEach(entry -> {
-                String groupId = entry.getKey();
-                ConsumerGroupDescription description = entry.getValue();
-                System.out.println("description:"+description);
-                boolean topicSubscribed = description.members().stream().map(MemberDescription::assignment)
-                        .map(MemberAssignment::topicPartitions)
-                        .map(tps -> tps.stream().map(TopicPartition::topic).collect(Collectors.toSet()))
-                        .anyMatch(tps -> tps.contains(topic));
-                if (topicSubscribed)
-                    filteredGroups.add(groupId);
-            });
-            return filteredGroups.toString();
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    /**
-     * rocketmq 根据主题查看是否有消费者在线订阅
-     * @param topic
-     * @return
-     */
-    @GetMapping("/findrmqConsumerGroup")
-    public String findrmqConsumerGroup(String topic){
-
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
-        String msg = "此主题没有消费者在线订阅。。。。。";
-        int num = 0;
-        try {
-            defaultMQAdminExt.setNamesrvAddr("172.23.125.15:9876");
-            defaultMQAdminExt.start();
-
-            // 1、先获取主题下所有的消费者组名
-            GroupList list = defaultMQAdminExt.queryTopicConsumeByWho(topic);
-            HashSet<String> groupList = list.getGroupList();
-
-            // 2、遍历每个消费者名称连接情况
-            for(String groupName : groupList){
-                try {
-                    ConsumerConnection connection = defaultMQAdminExt.examineConsumerConnectionInfo(groupName);
-                    num++;
-                }catch (Exception e){
-                    // 可以不往外抛异常，只日志记录异常信息；
-                    // e.printStackTrace();
-                    LogUtils.error("消费者组["+groupName+"]连接异常："+e.getMessage());
-                }
-            }
-            if(num > 0){
-                msg = "有消费者在线订阅此主题。。。。。";
-            }
-        }catch (Exception e){
-            e.printStackTrace();
-        }finally {
-            defaultMQAdminExt.shutdown();
-        }
-        return msg;
-    }
-
-    /**
-     * 判断是否有消费者在线订阅 topic主题，kafka的断掉后会有几秒的延迟时间
-     * @param topic 主题
-     * @return  true 有消费者  false 无消费者
-     */
-    @GetMapping("online-subscription")
-    public boolean onlineSubscription(String topic){
-        // 1、rocketmq是否有订阅
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
-        HashSet<String> groupList = new HashSet<>();
-        int num = 0;
-        try {
-            defaultMQAdminExt.setNamesrvAddr("172.23.125.15:9876");
-            defaultMQAdminExt.start();
-
-            // 1.1、先获取主题下所有的消费者组名
-            try {
-                GroupList list = defaultMQAdminExt.queryTopicConsumeByWho(topic);
-                groupList = list.getGroupList();
-            }catch (Exception e){
-                LogUtils.error(topic+"主题获取消费者组集合失败");
-            }
-
-            // 1.2、遍历每个消费者名称连接情况
-            for(String groupName : groupList){
-                try {
-                    ConsumerConnection connection = defaultMQAdminExt.examineConsumerConnectionInfo(groupName);
-                    num++;
-                }catch (Exception e){
-                    LogUtils.error("消费者组["+groupName+"]连接异常："+e.getMessage());
-                }
-            }
-
-            // 2、检查kafka是否有订阅
-            String brokerServers = "172.23.125.15:9092";
-            Properties props = new Properties();
-            props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, brokerServers);
-            final List<String> filteredGroups = new ArrayList<>();
-
-            try (AdminClient client = AdminClient.create(props)) {
-                List<String> allGroups = client.listConsumerGroups()
-                        .valid()
-                        .get(10, TimeUnit.SECONDS)
-                        .stream()
-                        .map(ConsumerGroupListing::groupId)
-                        .collect(Collectors.toList());
-
-                Map<String, ConsumerGroupDescription> allGroupDetails =
-                        client.describeConsumerGroups(allGroups).all().get(10, TimeUnit.SECONDS);
-
-                allGroupDetails.entrySet().forEach(entry -> {
-                    String groupId = entry.getKey();
-                    ConsumerGroupDescription description = entry.getValue();
-                    boolean topicSubscribed = description.members().stream().map(MemberDescription::assignment)
-                            .map(MemberAssignment::topicPartitions)
-                            .map(tps -> tps.stream().map(TopicPartition::topic).collect(Collectors.toSet()))
-                            .anyMatch(tps -> tps.contains(topic));
-                    if (topicSubscribed)
-                        filteredGroups.add(groupId);
-                });
-            }catch (Exception e){
-                e.printStackTrace();
-            }
-            // 3、判断kafka或rocketmq是否有订阅
-            if(num > 0 || !filteredGroups.isEmpty()){
-                return true;
-            }
-        }catch (Exception e){
-            e.printStackTrace();
-        }finally {
-            defaultMQAdminExt.shutdown();
-        }
-        return false;
-    }
-
-    /**
-     * 通过封装调用
-     * @param topic
-     * @return
-     */
-    @GetMapping("isOblineSub")
-    public boolean isOblineSub(String topic){
-
-        MessageExtService extService = MqUtils.getMessageExtService();
-        return extService.isOblineSub(topic);
-    }
 
     @GetMapping("/initMoreConsumer")
     public String initMoreConsumer(){

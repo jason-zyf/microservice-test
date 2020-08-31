@@ -23,7 +23,7 @@ import java.util.HashSet;
 public class AdminExtSample {
 
     public static void main(String[] args) {
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
+        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt("mainAdminExt");
         try {
             defaultMQAdminExt.setNamesrvAddr("172.23.125.15:9876");
             defaultMQAdminExt.start();

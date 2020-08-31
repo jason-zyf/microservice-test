@@ -17,20 +17,20 @@ eureka:
     serviceUrl:
       defaultZone: http://10.38.2.12/service-registry/eureka/
 
-#hjmos:
-#  rocketmq:
-#    # 指定namesrv地址  192.168.236.137:9876;192.168.236.139:9876
-#    namesrvAddr: 10.38.2.12:30076
-#    #生产者group名称
-#    producerGroupName: producerGroupName
-#    #生产者实例名称
-#    producerInstanceName: user_producer_instance
-#  # kafka 相关设置
-#  kafka:
-#    # 指定kafka 代理地址，可以多个  192.168.236.137:9092;192.168.236.137:9093;192.168.236.137:9094
-#    bootstrapServers: 172.23.125.15:9092
-#    # 配置发往kafka的主题
-#    permitTopics: log,hjmos-log
+hjmos:
+  rocketmq:
+    # 指定namesrv地址  192.168.236.137:9876;192.168.236.139:9876   10.38.2.12:30076
+    #生产者group名称
+    namesrvAddr: 10.38.2.12:30076
+    producerGroupName: producerGroupName
+    #生产者实例名称
+    producerInstanceName: user_producer_instance
+  # kafka 相关设置
+  kafka:
+    # 指定kafka 代理地址，可以多个  192.168.236.137:9092;192.168.236.137:9093;192.168.236.137:9094
+    bootstrapServers: 172.23.125.15:9092
+    # 配置发往kafka的主题
+    permitTopics: log,hjmos-log
 
 
 # config没启动的默认配置
@@ -41,6 +41,6 @@ eureka:
 #hjmos.rocketmq.producerGroupName: defaultGroupName
 #hjmos.rocketmq.producerInstanceName: defaultInstance
 
-#mq:
-#  kafka:
-#    enabled: 0
+mq:
+  kafka:
+    enabled: 0
